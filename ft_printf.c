@@ -18,14 +18,48 @@
 
 typedef struct s_format
 {
-    char    align;      // defaut, left, zero padding
-    char    sign;       // default, +, blankspace
-    int     width;      // Field width
-    int     precision;  // Precision for floats/strings
+	char    align;      // defaut, left, zero padding
+	char    sign;       // default, +, blankspace
+	int     width;      // Field width
+	int     precision;  // Precision for floats/strings
 	int     alt_format; // Alternate format (#)
-    char    mod;       // Length modifier (h, l, etc.)
-    char    type;       // Format specifier (d, s, x, etc.)
+	char    mod;       // Length modifier (h, l, etc.)
+	char    type;       // Format specifier (d, s, x, etc.)
 } t_format;
+
+int ft_log(int base, int n)
+{
+	int i;
+
+	i = 0;
+	while (n / base)
+	{
+		n /= base;
+		i++;
+	}
+	return (i);
+}
+
+int ft_pow(int base, int exp)
+{
+	int i;
+	int sol;
+
+	sol = 1;
+	i = 0;
+	while (i < exp)
+	{
+		sol *= base;
+		i++;
+	}
+	return (sol);
+}
+int ft_abs(int n)
+{
+	if (n < 0)
+		return (-n);
+	return (n);
+}
 
 size_t    ft_strlen(char *s)
 {
@@ -63,10 +97,11 @@ void    ft_putstrlen(char *s, size_t n)
 
 void putchar_times(char c, int n)
 {
+	if (!n)
+		return;
 	printf("%c", c);
     //write(1, c, 1);
-	if (n > 1)
-		putchar_times(c, n - 1);
+	putchar_times(c, n - 1);
 }
 
 int is_format_valid(t_format *f)
@@ -105,7 +140,6 @@ void format_print(t_format* f)
         printf(" - POINTER!");
 }
 
-
 void    format_initialize(t_format* f)
 {
     f->align = 0;
@@ -119,22 +153,23 @@ void    format_initialize(t_format* f)
 
 int parse_format(char **s, t_format* f)
 {
-    char* c; 
-    int n;
+	char* c; 
+	int n;
 
-    c = *s;
-    format_initialize(f);
-    if (*c == '+' || *c == ' ') // '+' show sign for positive numbers ' ' space before positive numbers
-    {
-        f->sign = *c;
-        c++;
-    }
-    if (*c == '-' || *c == '0') // '-' left align '0' zero padding
+	c = *s;
+	format_initialize(f);
+	
+	if (*c == '+' || *c == ' ')
+	{
+		f->sign = *c;
+		c++;
+	}
+    if (*c == '-' || *c == '0')
     {
         f->align = *c;
         c++;
     }
-    n = 0; // %w  minimum number of characters to be printed
+    n = 0;
     while (*c >= '0' && *c <= '9')
     {
         n = n * 10 + (*c - '0');
@@ -150,11 +185,11 @@ int parse_format(char **s, t_format* f)
             n = n * 10 + (*c - '0');
             c++;
         }   
-        f->precision = n; // %.p For integers: Minimum number of digits. For floats: Number of decimal places. For strings: Maximum number of characters
+        f->precision = n;
     }
 
 
-    // modificadores
+    // modifiers
     {}
 
     //format_print(f);
@@ -166,7 +201,6 @@ int parse_format(char **s, t_format* f)
     {
 
     }
-
     *s = c;
 
     return 1;
@@ -174,76 +208,116 @@ int parse_format(char **s, t_format* f)
 
 char* ft_itoa(int n, int b)
 {
-    size_t  l;
-    int     u;
-    char    *sol;
+	size_t 	l;
+	int	u;
+	char	*sol;
 
-    l = 1;
-    u = 1;
-
-    while (n / b >= u)
-    {
-        u *= b;
-        l++;
-    }
-    sol = (char *)malloc((l + 1) * sizeof(char));
-    if (sol == NULL)
-        return (NULL);
-    l = 0;
-    while (u)
-    {
-        sol[l] = '0' + n / u;
-        n = n % u;
-        u = u / b;
-        l++;
-    }
-    sol[l] = '\0';
-    return (sol);
+	l = ft_log(b, n) + 1;
+	sol = (char *)malloc((l + 1) * sizeof(char));
+	if (sol == NULL)
+		return (NULL);
+	u = ft_pow(b, l - 1);
+	l = 0;
+	while (u)
+	{
+		if (n / u <= 9)
+			sol[l] = '0' + n / u;
+		else
+			sol[l] = 'a' + (n / u) - 10;
+		n = n % u;
+		u = u / b;
+		l++;
+	}
+	sol[l] = '\0';
+	return (sol);
 }
 
+// (%p)
+void print_pointer(t_format* f, void* p)
+{
+	char* str;
+	int l;
+	int z;
+	int b;
+	int s;
+
+	// MODIFICAR PARA COGER LO BUENOS
+	str = ft_itoa(p, 16);
+	l = ft_strlen(str);
+	b = 0;
+	z = 0;
+	s = 0;
+
+	if (f->precision > l)
+		z = f->precision - l;
+	if (f->width > z + l)
+		b = f->width - (z + l + s);
+	if (f->align == '0' && f->precision == -1)
+	{
+		z = b;
+		b = 0;
+	}
+	if (f->align != '-')
+		putchar_times(' ', b);
+
+
+	putchar_times('0', z);
+	ft_putstr(str);
+	if (f->align == '-')
+		putchar_times(' ', b);
+}
+
+// (%d, %u, %o, %x)
 void print_integer(t_format* f, int n)
 {
-    char* s;
-    int l;
-    int i;
-    int d;
+	char* str;
+	int l;
+	int z;
+	int b;
+	int s;
 
-    s = ft_itoa(n, 10);
-    l = ft_strlen(s);
-    d = 0;
-    if (f->sign && n >= 0)
-    {
-        ft_putchar(f->sign);
-        d++;
-    }
-    else if (n < 0)
-    {
-        ft_putchar('-');
-        d++;
-    }
+	if (f->type == 'd' || f->type == 'i')
+		str = ft_itoa(abs(n), 10);
+	else if (f->type == 'x' || f->type == 'X' || f->type == 'p')
+		str = ft_itoa(abs(n), 16);
+	l = ft_strlen(str);
+	b = 0;
+	z = 0;
+	s = 0;
+	if (((f->type == 'd' || f->type == 'i' || f->type == 'p') && f->sign) || n < 0)
+		s++;
+	if(f->type == 'p')
+		s += 2;
+	if (f->precision > l)
+		z = f->precision - l;
+	if (f->width > z + l)
+		b = f->width - (z + l + s);
+	if (f->align == '0' && f->precision == -1)
+	{
+		z = b;
+		b = 0;
+	}
+	if (f->align != '-')
+		putchar_times(' ', b);
+	if ((f->type == 'd' || f->type == 'i' || f->type == 'p') && f->sign && n >= 0 )
+		ft_putchar(f->sign);
+	else if (n < 0)
+		ft_putchar('-');
+	if (f->type == 'p')
+		printf("0x");
+	putchar_times('0', z);
+	ft_putstr(str);
+	if (f->align == '-')
+		putchar_times(' ', b);
+}
 
-    /*if (f->align == '0' || f->align == '-')
-    {
-        d = f->width;
-        if (f->precision > d)
-            d = f->precision;
-    }*/
-    // si tiene 0 o left, mirar el width
-    if (f->align == '0' && f->width > l + d)
-    {
-    	putchar_times('0', f->width - l - d);
-        ft_putstr(s);
-    }
-    else if (f->align == '-' && f->width > l + d)
-    {
-        ft_putstr(s);
-		putchar_times(' ', f->width - l - d);
-    }
-    else
-    	ft_putstr(s);
+// (%f, %e)
+void print_floatingpoint(t_format* f, int n)
+{
 
 }
 
+// (%s)
 void print_a_string(t_format* f, char *s)
 {
     int l;
@@ -256,12 +330,7 @@ void print_a_string(t_format* f, char *s)
           l = f->precision;
 
 	if ((f->align == '0' || !f->align) && f->width > l)
-	{
-            /*if (f->align == '0')
-                putchar_times('0', f->width - l);
-            else*/
                 putchar_times(' ', f->width - l);
-	}
 	if (f->precision == -1 || f->precision > l)
 		ft_putstr(s);
 	else 
@@ -278,7 +347,6 @@ void    ft_puthex(void *h)
     int i;
 
     b = 16 * 16 * 16 * 16 * 16 * 16 * 16;
-    
     p0 = (unsigned long long)h / b;
     p1 = (unsigned long long)h % b;
     while (b)
@@ -335,12 +403,6 @@ void    ft_putdec(float f)
     ft_putint((int)f);
 }
 
-//%u Imprime un número decimal(base 10) sin signo.
-
-
-
-
-
 //%x Imprime un número hexadecimal(base 16) en minúsculas.
 void    ft_puthex_minnor(void* h)
 {
@@ -363,7 +425,6 @@ void    ft_puthex_minnor(void* h)
         b /= 16;
     }
 }
-
 
 //%X Imprime un número hexadecimal(base 16) en mayúsculas.
 void    ft_puthex_upper(void* h)
@@ -388,27 +449,26 @@ void    ft_puthex_upper(void* h)
     }
 }
 
-
 //%% para imprimir el símbolo del porcentaje.
 void    ft_putper()
 {
     ft_putchar('%');
 }
 
-
 void ft_printf(const char* format, ...)
 {
 	va_list args;
 	va_start(args, format);
 	t_format f;
+	const char* p;
 
-    for (const char* p = format; *p != '\0'; p++)
+	p = format;
+    while (*p != '\0')
     {
         if (*p == '%' && *(p + 1) != '\0')
         {
-            p++;
+			p++;
             parse_format(&p, &f);
-
             if (f.type == 'd' || f.type == 'i')
                 print_integer(&f, va_arg(args, int));
             //ft_putint(va_arg(args, int));
@@ -420,11 +480,11 @@ void ft_printf(const char* format, ...)
             else if (*p == 'u')
                 ;
             else if (*p == 'p')
-                ft_puthex(va_arg(args, void *));
+                print_integer(&f, va_arg(args, void *));
             else if (*p == 'x')
-                ft_puthex_minnor(va_arg(args, unsigned int));
+                print_integer(&f, va_arg(args, unsigned int));
             else if (*p == 'X')
-                ft_puthex_upper(va_arg(args, unsigned int));
+                print_integer(&f, va_arg(args, unsigned int));
             else
             {
                 ft_putper();
@@ -434,10 +494,56 @@ void ft_printf(const char* format, ...)
         else {
             putchar(*p); // Imprime caracteres normales
         }
+        p++;
     }
-
-    va_end(args);
+	va_end(args);
 }
+
+int test_pointers()
+{
+
+	void *p0 =     malloc(3);
+    printf("\n\n __________________ TESTEANDO LOS PUNTEROS __________________");
+    printf("\n\n ______ SIN FORMATO DE NINGUN TIPO ______");
+       printf("\n>%p|", p0);
+    ft_printf("\n %p|", p0);
+
+    printf("\n\n ______ ALINEACIONES ______");
+       printf("\n>%-5p|", p0);
+    ft_printf("\n %-5p|", p0);
+       printf("\n>%05p|", p0);
+    ft_printf("\n %05p|", p0);
+	
+    printf("\n\n ______ SIGNOS Y ALINEACIONES ______");
+       printf("\n>%+-5p|", p0);
+    ft_printf("\n %+-5p|", p0);
+       printf("\n>%+05p|", p0);
+    ft_printf("\n %+05p|", p0);
+
+
+    printf("\n\n ______ SIGNOS Y ALINEACIONES, un numero más gordo ______");
+       printf("\n>%+-5p|", p0);
+    ft_printf("\n %+-5p|", p0);
+       printf("\n>%+05p|", p0);
+    ft_printf("\n %+05p|", p0);
+
+    printf("\n\n ______ WIDTH AND PRECISION ______");
+       printf("\n>%+-5.3p|", p0);
+    ft_printf("\n %+-5.3p|", p0);
+       printf("\n>%+05.10p|", p0);   
+    ft_printf("\n %+05.10p|", p0);
+       printf("\n>%+5.10p|", p0);   
+    ft_printf("\n %+5.10p|", p0); 
+    
+    printf("\n\n ______ WIDTH AND PRECISION ______");
+       printf("\n>%+-15.3p|", p0);
+    ft_printf("\n %+-15.3p|", p0);
+       printf("\n>%+15.7p|", p0);   
+    ft_printf("\n %+15.7p|", p0);
+       printf("\n>%+15.10p|", p0);   
+    ft_printf("\n %+15.10p|", p0);
+}
+
 
 int test_integers()
 {
@@ -477,6 +583,16 @@ int test_integers()
     ft_printf("\n %+05d|", 546373);
        printf("\n>%+05i|", 546373);
     ft_printf("\n %+05i|", 546373);
+    
+    printf("\n\n ______ SIGNOS Y ALINEACIONES, UN NUMERO NEGATIVO ______");
+       printf("\n>%+-5d|", -546373);
+    ft_printf("\n %+-5d|", -546373);
+       printf("\n>%+-5i|", -546373);
+    ft_printf("\n %+-5i|", -546373);
+       printf("\n>%+05d|", -546373);
+    ft_printf("\n %+05d|", -546373);
+       printf("\n>%+05i|", -546373);
+    ft_printf("\n %+05i|", -546373);
 
     printf("\n\n ______ WIDTH AND PRECISION ______");
        printf("\n>%+-5.3d|", 546373);
@@ -484,31 +600,31 @@ int test_integers()
        printf("\n>%+-5.3i|", 546373);
     ft_printf("\n %+-5.3i|", 546373);
        printf("\n>%+05.7d|", 546373);   
-    ft_printf("\n %+05.7d|", 546373);   // KO
+    ft_printf("\n %+05.7d|", 546373);
        printf("\n>%+05.7i|", 546373);
-    ft_printf("\n %+05.7i|", 546373);   // KO
+    ft_printf("\n %+05.7i|", 546373);
        printf("\n>%+5.7d|", 546373);   
-    ft_printf("\n %+5.7d|", 546373);   // KO
+    ft_printf("\n %+5.7d|", 546373);
        printf("\n>%+5.7i|", 546373);
     ft_printf("\n %+5.7i|", 546373);   // KO
+    
     printf("\n\n ______ WIDTH AND PRECISION ______");
-       printf("\n>%+-8.3d|", 546373);
-    ft_printf("\n %+-8.3d|", 546373);
-       printf("\n>%+-8.3i|", 546373);
-    ft_printf("\n %+-8.3i|", 546373);
-       printf("\n>%+08.7d|", 546373);   
-    ft_printf("\n %+08.7d|", 546373);   // KO
-       printf("\n>%+08.7i|", 546373);
-    ft_printf("\n %+08.7i|", 546373);   // KO
-       printf("\n>%+8.7d|", 546373);   
-    ft_printf("\n %+8.7d|", 546373);   // KO
-       printf("\n>%+8.7i|", 546373);
-    ft_printf("\n %+8.7i|", 546373);   // KO
+       printf("\n>%+-9.3d|", 546373);
+    ft_printf("\n %+-9.3d|", 546373);
+       printf("\n>%+-9.3i|", 546373);
+    ft_printf("\n %+-9.3i|", 546373);
+       printf("\n>%+09.7d|", 546373);   
+    ft_printf("\n %+09.7d|", 546373);
+       printf("\n>%+09.7i|", 546373);
+    ft_printf("\n %+09.7i|", 546373);
+       printf("\n>%+9.7d|", 546373);   
+    ft_printf("\n %+9.7d|", 546373);
+       printf("\n>%+9.7i|", 546373);
+    ft_printf("\n %+9.7i|", 546373);
 }
 
 void test_strings()
 {
-
 	printf("\n\n __________________ TESTEANDO STRINGSSSSSS __________________");
     char* mystring = "this is a sample string";
     printf("\n\n ______ SIN FORMATO DE NINGUN TIPO ______");
@@ -549,10 +665,89 @@ void test_strings()
     ft_printf("\n %8.40s|", mystring);
 }
 
+void test_hexas()
+{
+    printf("\n\n __________________ TESTEANDO LOS ENTEROS X __________________");
+    printf("\n\n ______ SIN FORMATO DE NINGUN TIPO ______");
+       printf("\n>%x|", 227);
+    ft_printf("\n %x|", 227);
+       printf("\n>%X|", 227);
+    ft_printf("\n %X|", 227);
+
+    printf("\n\n ______ ALINEACIONES ______");
+       printf("\n>%-5x|", 227);
+    ft_printf("\n %-5x|", 227);
+       printf("\n>%-5X|", 227);
+    ft_printf("\n %-5X|", 227);
+       printf("\n>%05x|", 227);
+    ft_printf("\n %05x|", 227);
+       printf("\n>%05X|", 227);
+    ft_printf("\n %05X|", 227);
+
+    printf("\n\n ______ SIGNOS Y ALINEACIONES ______");
+       printf("\n>%+-5x|", 227);
+    ft_printf("\n %+-5x|", 227);
+       printf("\n>%+-5X|", 227);
+    ft_printf("\n %+-5X|", 227);
+       printf("\n>%+05x|", 227);
+    ft_printf("\n %+05x|", 227);
+       printf("\n>%+05X|", 227);
+    ft_printf("\n %+05X|", 227);
+
+    printf("\n\n ______ SIGNOS Y ALINEACIONES, un numero más gordo ______");
+       printf("\n>%+-5x|", 5463734);
+    ft_printf("\n %+-5x|", 5463734);
+       printf("\n>%+-5X|", 5463734);
+    ft_printf("\n %+-5X|", 5463734);
+       printf("\n>%+05x|", 5463734);
+    ft_printf("\n %+05x|", 5463734);
+       printf("\n>%+05X|", 5463734);
+    ft_printf("\n %+05X|", 5463734);
+    
+        printf("\n\n ______ SIGNOS Y ALINEACIONES, un numero negativo ______");
+       printf("\n>%+-5x|", -5463734);
+    ft_printf("\n %+-5x|", -5463734);
+       printf("\n>%+-5X|", -5463734);
+    ft_printf("\n %+-5X|", -5463734);
+       printf("\n>%+05x|", -5463734);
+    ft_printf("\n %+05x|", -5463734);
+       printf("\n>%+05X|", -5463734);
+    ft_printf("\n %+05X|", -5463734);
+
+    printf("\n\n ______ WIDTH AND PRECISION ______");
+       printf("\n>%+-5.3x|", 546373);
+    ft_printf("\n %+-5.3x|", 546373);
+       printf("\n>%+-5.3X|", 546373);
+    ft_printf("\n %+-5.3X|", 546373);
+       printf("\n>%+05.7x|", 546373);   
+    ft_printf("\n %+05.7x|", 546373);
+       printf("\n>%+05.7X|", 546373);
+    ft_printf("\n %+05.7X|", 546373);
+       printf("\n>%+5.7x|", 546373);   
+    ft_printf("\n %+5.7x|", 546373);
+       printf("\n>%+5.7X|", 546373);
+    ft_printf("\n %+5.7X|", 546373);  
+    
+    printf("\n\n ______ WIDTH AND PRECISION ______");
+       printf("\n>%+-8.3x|", 546373);
+    ft_printf("\n %+-8.3x|", 546373);
+       printf("\n>%+-8.3X|", 546373);
+    ft_printf("\n %+-8.3X|", 546373);
+       printf("\n>%+08.7x|", 546373);   
+    ft_printf("\n %+08.7x|", 546373);
+       printf("\n>%+08.7X|", 546373);
+    ft_printf("\n %+08.7X|", 546373);
+       printf("\n>%+8.7x|", 546373);   
+    ft_printf("\n %+8.7x|", 546373);
+       printf("\n>%+8.7X|", 546373);
+    ft_printf("\n %+8.7X|", 546373);
+}
+
 int	main()
 {
-
-	test_integers();
-	//test_strings();
+	/*test_integers();
+	test_strings();
+	test_hexas();*/
+	test_pointers();
 	return 1;
 }
