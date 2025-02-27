@@ -171,7 +171,7 @@ int	parse_format(char **s, t_format *f)
 	return (1);
 }
 
-char*	ft_uitoa(unsigned int n, int b)
+char	*ft_uitoa(unsigned int n, int b)
 {
 	size_t	l;
 	int		u;
@@ -196,8 +196,48 @@ char*	ft_uitoa(unsigned int n, int b)
 	sol[l] = '\0';
 	return (sol);
 }
+void	*ft_memcpy(void *dest, const void *src, size_t n)
+{
+	unsigned char	*d;
+	unsigned char	*s;
+	size_t			i;
 
-void	ft_print_number(t_format *f, void *n)
+	d = (unsigned char *)dest;
+	s = (unsigned char *)src;
+	i = 0;
+	while (i < n)
+	{
+		d[i] = s[i];
+		i++;
+	}
+	return (dest);
+}
+char	*str_merge(char *s1, char *s2)
+{
+	size_t	l1;
+	size_t	l2;
+	char	*sol;
+
+	l1 = 0;
+	if (s1 != NULL)
+		l1 = ft_strlen(s1);
+	l2 = 0;
+	if (s2 != NULL)
+		l2 = ft_strlen(s2);
+	sol = (char *)malloc((l1 + l2 + 1) * sizeof(char));
+	if (!sol)
+		return (NULL);
+	if (l1)
+		ft_memcpy((void *)sol, (void *)s1, l1);
+	if (l2)
+		ft_memcpy((void *)&sol[l1], (void *)s2, l2);
+	sol[l1 + l2] = '\0';
+	free(s1);
+	free(s2);
+	return (sol);
+}
+
+void	ft_print_number(t_format *f, int *n)
 {
 	char	*str;
 	int		l;
@@ -206,13 +246,14 @@ void	ft_print_number(t_format *f, void *n)
 	int		s;
 
 	if (f->type == 'd' || f->type == 'i')
-		str = ft_uitoa(abs(n), 10);
+		str = ft_uitoa(abs(*n), 10);
 	else if (f->type == 'u')
-		str = ft_uitoa(n, 10);
-	else if (f->type == 'x' || f->type == 'X' || f->type == 'p')
-		str = ft_uitoa(n, 16);
-	else if (f->type == 'o')
-		str = ft_uitoa(n, 8);
+		str = ft_uitoa(*n, 10);
+	else if (f->type == 'x' || f->type == 'X')
+		str = ft_uitoa(*n, 16);
+	else if (f->type == 'p')
+		str = str_merge(ft_uitoa(n[1], 16), ft_uitoa(n[0], 16));
+	
 	l = ft_strlen(str);
 	b = 0;
 	z = 0;
@@ -240,8 +281,6 @@ void	ft_print_number(t_format *f, void *n)
 		printf("0x");
 	else if (f->type == 'X' && f->alt_format)
 		printf("0X");
-	else if(f->type == 'o')
-		printf("o");
 	putchar_times('0', z);
 	ft_putstr(str);
 	if (f->align == '-')
@@ -329,39 +368,37 @@ void	ft_print_str(t_format *f, char *s)
 	if (f->align == '-')
 		putchar_times(' ', f->width - l);
 }
-/*
+
 void *parse_argument(const t_format *f, va_list	args)
 {
 	char type = f->type;
 	void *data = NULL;
-	if (type == 'd' || type == 'i' || type == 'u' || type == 'c')
+
+	if (type == 'd' || type == 'i' || type == 'u' || type == 'c' || type == 'x' || type == 'X')
 	{
 		data = malloc(sizeof(int));
-		*(int *)data = va_arg(args, int);
-		printf("{%d}", *data);
+		if (type == 'd' || type == 'i' || type == 'u' || type == 'c')
+			*(int *)data = va_arg(args, int);		
+		else
+			*(unsigned int *)data = va_arg(args, unsigned int);	
 	}
 	else if (type == 's' || type == 'p')
 	{
-		data = malloc(sizeof(char *));
-		*(char **)data = va_arg(args, char *);
+		data = malloc(sizeof(void *));
+		if (type == 's')
+			*(char **)data = va_arg(args, char *);
+		else
+			*(void **)data = va_arg(args, void *);
 	}
-	else if (type == 'p')
-	{
-		void* p = va_arg(args, void *);
-	}
-	else if (type == 'x' || type == 'X')
-	{
-		unsigned int ui = va_arg(args, unsigned int);
-	}
-	return data;
-}*/
+	return (data);
+}
 
 void	ft_printf(const char *format, ...)
 {
 	va_list		args;
 	t_format	f;
 	const char	*p;
-	void *var;
+	void *data;
 
 	va_start(args, format);
 	p = format;
@@ -371,19 +408,13 @@ void	ft_printf(const char *format, ...)
 		{
 			p++;
 			parse_format(&p, &f);
-			//parse_argument(&f, args);
-			if (f.type == 'd' || f.type == 'i')
-				ft_print_int(&f, va_arg(args, int));
+			data = parse_argument(&f, args);
+			if (is_instr(f.type, "diupxX"))
+				ft_print_number(&f, data);
 			else if (f.type == 'c')
-				ft_print_chr(&f, (char)va_arg(args, int));
+				ft_print_chr(&f, *(char *)data);
 			else if (f.type == 's')
-				ft_print_str(&f, va_arg(args, char *));
-			else if (f.type == 'u')
-				ft_print_int(&f, va_arg(args, int));
-			else if (f.type == 'p')
-				ft_print_int(&f, va_arg(args, void *));
-			else if (f.type == 'x' || f.type == 'X')
-				ft_print_int(&f, va_arg(args, unsigned int));
+				ft_print_str(&f, *(char **)data);
 			else
 				ft_putchar(*p);
 		}

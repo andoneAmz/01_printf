@@ -17,6 +17,6 @@ typedef struct s_format
 	int     width;      // Field width
 	int     precision;  // Precision for floats/strings
 	int     alt_format; // Alternate format (#)
-	char    mod;       // Length modifier (h, l, etc.)
+	char    length;       // Length modifier (h, l, etc.)
 	char    type;       // Format specifier (d, s, x, etc.)
 } t_format;

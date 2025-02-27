@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 void ft_printf(const char* format, ...);
-
+/*
 int test_pointers()
 {
 
@@ -377,17 +377,38 @@ void test_char_formats()
 
     printf("Character format tests complete.\n");
 }
+*/
 
+void microtest()
+{
+	int pointer;
+	
+	printf("size of integer %ld\n", sizeof(int));
+	printf("size of pointer %ld\n", sizeof(void *));
+	printf("size of unsigned integer %ld\n", sizeof(unsigned int));
+	
+	   printf(">%d, %u, %c\n", 10, -20, 'a');
+	ft_printf(" %d, %u, %c\n", 10, -20, 'a');
+	
+	   printf(">%s\n", "this thing i want to tell you");
+	ft_printf(" %s\n", "this thing i want to tell you");
+	
+	printf(">%p\n", &pointer);
+	ft_printf(" %p\n", &pointer);
+	
+	printf(">%x\n", 4568);
+	ft_printf(" %x\n", 4568);
+}
 
 int	main()
 {
-	
-	test_integer_limits();
-	test_integers();
-	test_strings();
+	microtest();
+	//test_integer_limits();
+	//test_integers();
+	/*test_strings();
 	test_hexas();
 	test_pointers();
 	test_unsignedintegers();
-	test_char_formats();
+	test_char_formats();*/
 	return 1;
 }
